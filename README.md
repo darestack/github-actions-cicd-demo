@@ -1,127 +1,77 @@
-# GitHub Actions CI/CD Demo
+# github-actions-cicd-demo
 
-This project is a demonstration of a complete Continuous Integration and Continuous Deployment (CI/CD) pipeline for a Node.js application using GitHub Actions. It showcases best practices for automating the build, test, and deployment processes, ensuring code quality and security.
+> A complete CI/CD pipeline demonstrating security scanning, multi-version testing,
+> Docker image publishing to GHCR, and staged deployment — all built with GitHub Actions.
 
-## Features
+**Context:** This is the pipeline implementation from [devops-labs Module-3 Mini-Project 9](https://github.com/darestack/devops-labs/tree/main/Module-3/mini-project-09). Full implementation notes live there.
 
-- **Continuous Integration (CI):**
-  - Automated testing on multiple Node.js versions.
-  - Code linting and static analysis to enforce code quality.
-  - Vulnerability scanning to identify security risks.
-  - Test coverage reports to measure code testability.
-- **Continuous Deployment (CD):**
-  - Automated deployment to staging and production environments.
-  - Docker containerization for consistent and portable deployments.
-  - Health checks to ensure application availability.
-- **Node.js Application:**
-  - A simple Express.js application with a few API endpoints.
-  - Unit and integration tests using Jest and Supertest.
+---
 
-## Technologies Used
+## Pipeline Stages
 
-- **Application:** Node.js, Express.js
-- **Testing:** Jest, Supertest
-- **CI/CD:** GitHub Actions
-- **Containerization:** Docker
-- **Code Quality:** ESLint
-- **Security:** Trivy
+| Stage | What It Does | Key Detail |
+|---|---|---|
+| `test` | Unit tests across multiple Node.js versions | Build matrix: Node 12, 14, 16 with npm dependency caching |
+| `code-quality` | ESLint static analysis | Configured to **fail the build** on lint errors — no `continue-on-error` |
+| `security` | Trivy vulnerability scan | Results uploaded as SARIF to GitHub Code Scanning |
+| `build` | Docker image creation | Pushes to GHCR tagged with both `branch-name` and `commit-SHA` |
+| `deploy` | Staged rollout | Staging deploy → integration + smoke tests → production deploy |
 
-## Getting Started
+---
 
-To get a local copy up and running, follow these simple steps.
-
-### Prerequisites
-
-- Node.js (v18.x or later)
-- npm
-- Docker
-
-### Installation
-
-1.  Clone the repo
-    ```sh
-    git clone https://github.com/your_username/github-actions-cicd-demo.git
-    ```
-2.  Install NPM packages
-    ```sh
-    npm install
-    ```
-3.  Run the application
-    ```sh
-    npm start
-    ```
-4.  Run the tests
-    ```sh
-    npm test
-    ```
-
-## CI/CD Pipeline
-
-The CI/CD pipeline is defined in the `.github/workflows/cicd.yml` file and consists of the following jobs:
-
-```mermaid
-graph TD
-    A[Push to main/develop] --> B{Test};
-    B --> C{Code Quality};
-    B --> D{Security Scan};
-    C --> E{Build};
-    D --> E;
-    E --> F{Deploy to Staging};
-    F --> G{Integration Tests};
-    G --> H{Deploy to Production};
-    H --> I{Smoke Tests};
-    I --> J{Notify};
-```
-
-- **Test:** Runs unit tests on multiple Node.js versions.
-- **Code Quality:** Performs static analysis using ESLint.
-- **Security Scan:** Scans for vulnerabilities using Trivy.
-- **Build:** Builds the Docker image and pushes it to the container registry.
-- **Deploy to Staging:** Deploys the application to a staging environment.
-- **Integration Tests:** Runs integration tests against the staging environment.
-- **Deploy to Production:** Deploys the application to the production environment.
-- **Smoke Tests:** Runs smoke tests against the production environment.
-- **Notify:** Sends a notification about the deployment status.
-
-## API Endpoints
-
-| Method | Endpoint     | Description                                |
-| ------ | ------------ | ------------------------------------------ |
-| GET    | `/`          | Returns a welcome message.                 |
-| POST   | `/calculate` | Calculates the sum of an array of numbers. |
-| GET    | `/health`    | Returns the application status.            |
-
-### POST /calculate
-
-**Request Body:**
-
-```json
-{
-  "numbers": [1, 2, 3, 4, 5]
-}
-```
-
-**Response:**
-
-```json
-{
-  "numbers": [1, 2, 3, 4, 5],
-  "sum": 15,
-  "isEven": false
-}
-```
-
-## Project Structure
+## Architecture
 
 ```
-.
-├── .github/workflows/cicd.yml
-├── Dockerfile
-├── package.json
-├── src/
-│   ├── app.js
-│   └── utils.js
-└── tests/
-    ├── app.test.js
-    └── utils.test.js
+Push to main / PR opened
+  │
+  ├── test (matrix: Node 12, 14, 16)
+  │     └── npm ci (cached) → npm test → coverage report
+  │
+  ├── code-quality
+  │     └── ESLint → fails build on any error
+  │
+  ├── security
+  │     └── Trivy filesystem scan → SARIF → GitHub Code Scanning
+  │
+  ├── build (depends on: test + code-quality + security)
+  │     └── docker/setup-buildx → docker/build-push → GHCR
+  │
+  └── deploy (depends on: build)
+        ├── Staging environment deploy
+        ├── Integration tests + smoke tests
+        └── Production deploy
 ```
+
+---
+
+## Key Implementation Decisions
+
+**GHCR image tagging:** Each image is tagged with both `latest` and the commit SHA — enabling rollback to any previous build without relying on the `latest` tag alone.
+
+**ESLint as a hard gate:** Removed `continue-on-error: true` from the lint step. If ESLint finds errors, the entire pipeline stops — no broken code reaches Docker build.
+
+**Trivy SARIF upload:** Required adding `security-events: write` to the job-level permissions block. Without this, the upload fails silently.
+
+**Docker Buildx:** The default GitHub Actions Docker driver does not support cache export. Fixed by adding `docker/setup-buildx-action@v3` before the build step.
+
+**GHCR push permissions:** `GITHUB_TOKEN` requires explicit `packages: write` in the job permissions to create new container packages.
+
+---
+
+## How to Run
+
+```bash
+git clone https://github.com/darestack/github-actions-cicd-demo.git
+cd github-actions-cicd-demo
+npm ci
+npm test
+npm run lint
+```
+
+Push to `main` or open a PR to trigger the full pipeline.
+
+---
+
+## Stack
+
+`GitHub Actions` · `Docker` · `GHCR` · `Trivy` · `Node.js` · `ESLint`
