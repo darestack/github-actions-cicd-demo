@@ -1,5 +1,7 @@
 # github-actions-cicd-demo
 
+[![CI/CD Pipeline](https://github.com/darestack/github-actions-cicd-demo/actions/workflows/cicd.yml/badge.svg)](https://github.com/darestack/github-actions-cicd-demo/actions/workflows/cicd.yml)
+
 > Node.js CI/CD lab demonstrating supported Node.js matrix tests, linting, Trivy SARIF upload, Docker Buildx, GHCR publishing, and simulated staged deploys with GitHub Actions.
 
 **Context:** This is the pipeline implementation from [devops-labs Module-3 Mini-Project 9](https://github.com/darestack/devops-labs/tree/main/Module-3/mini-project-09). Full implementation notes live there.
