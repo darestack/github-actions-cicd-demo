@@ -1,7 +1,7 @@
 {
   "name": "github-actions-cicd-demo",
   "version": "1.0.0",
-  "description": "Continuous Integration demo with GitHub Actions",
+  "description": "Node.js CI/CD lab with GitHub Actions, Docker Buildx, GHCR, ESLint SARIF, and Trivy scanning",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
@@ -16,10 +16,13 @@
     "ci",
     "cd",
     "github-actions",
-    "node.js",
+    "nodejs",
+    "docker",
+    "ghcr",
+    "trivy",
     "testing"
   ],
-  "author": "Your Name",
+  "author": "Adeleke Dare",
   "license": "MIT",
   "dependencies": {
     "express": "^5.1.0"
